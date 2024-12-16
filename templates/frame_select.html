@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>프레임 및 배경 선택</title>
+</head>
+<body style="background-color: gray; color: white;">
+    <h2>프레임 선택</h2>
+    <form action="{{ url_for('select_frame') }}" method="post">
+        {% for frame in frames %}
+            <label>
+                <input type="radio" name="frame" value="{{ frame }}"> 
+                <img src="{{ url_for('get_frame', filename= frame) }}" width="100">
+            </label>
+        {% endfor %}
+        <button type="submit">선택</button>
+    </form>
+</body>
+</html>
