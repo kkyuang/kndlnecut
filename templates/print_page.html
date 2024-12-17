@@ -17,19 +17,12 @@
         }
     </script>
 </head>
-<body style="background-color: gray; color: white;">
-    <h2>사진 확인 및 인화</h2>
-    <!-- 사진 표시 -->
-    {% for image in images %}
-        <img src="{{ url_for('static', filename=image.split('/')[-1]) }}" width="200">
-    {% endfor %}
-
-    <!-- 인화 폼 -->
+<body style="background-color: gray; color: white; text-align: center;">
+    <h2>합성된 사진 확인 및 인화</h2>
+    <!-- 합성된 결과 이미지 -->
+    <img src="{{ url_for('get_nowimgs', filename='result.png') }}" width="400" alt="Result Image">
     <form action="{{ url_for('print_photo') }}" method="post">
-        <label>
-            인화 장수: 
-            <input type="number" id="count" name="count" min="1" value="1" oninput="updatePrice()">
-        </label>
+        <label>인화 장수: <input type="number" name='count' id="count" min="1" value="1" oninput="updatePrice()"></label>
         <p>가격: <span id="price">1000원</span></p>
         <button type="submit">인화하기</button>
     </form>

@@ -5,10 +5,10 @@
 </head>
 <body style="background-color: gray; color: white;">
     <h2>프레임 선택</h2>
-    <form action="{{ url_for('select_frame') }}" method="post">
+    <form action="{{ url_for('photo_shoot') }}" method="get">
         {% for frame in frames %}
             <label>
-                <input type="radio" name="frame" value="{{ frame }}"> 
+                <input type="radio" name="framename" value="{{ frame }}"> 
                 <img src="{{ url_for('get_frame', filename= frame) }}" width="100">
             </label>
         {% endfor %}

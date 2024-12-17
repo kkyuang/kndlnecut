@@ -24,8 +24,8 @@
         }
 
         #photo-container img {
-            width: 213px; /* 1/3 사이즈 */
-            height: 160px;
+            width: 160px; /* 1/3 사이즈 */
+            height: 120px;
             margin: 5px;
             border: 2px solid white;
         }
@@ -49,8 +49,11 @@
         }
     </style>
     <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const framename = urlParams.get('framename'); // frame 파일명
+
         let photoCount = 0; // 사진 촬영 개수
-        const totalPhotos = 3; // 총 사진 개수
+        const totalPhotos = 4; // 총 사진 개수
         const capturedPhotos = []; // 촬영된 사진 경로 저장
         let interval;
 
@@ -128,10 +131,16 @@
             countdownAndCapture();
         }
 
-        function printPhotos() {
-            window.location.href = "/print_page";
-        }
 
+
+        function printPhotos() {
+            if (framename) {
+                // 선택한 프레임 이름을 사용하여 서버로 요청
+                window.location.href = "/generate_result/" + framename;
+            } else {
+                alert("프레임이 선택되지 않았습니다.");
+            }
+        }
         window.onload = countdownAndCapture; // 페이지 로드 시 촬영 준비 시작
     </script>
 </head>
