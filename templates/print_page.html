@@ -1,8 +1,140 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>사진 인화</title>
+    <style>
+        /* 전체 페이지 스타일 */
+        body {
+            margin: 0;
+            height: 100vh;
+            background-image: url("{{ url_for('static', filename='print_photo.png') }}");
+            background-size: contain;
+            background-position: top;
+            background-repeat: no-repeat;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: black;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        /* 컨테이너 스타일 */
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(200, 200, 200, 0.9);
+            /* 반투명 회색 영역 */
+            width: 800px;
+            height: 500px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 이미지 스타일 */
+        .image-section {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .image-section img {
+            width: 300px;
+            height: auto;
+            border: 2px solid white;
+            border-radius: 5px;
+        }
+
+        /* 오른쪽 정보 스타일 */
+        .info-section {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .info-section label {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+
+        .info-section p {
+            font-size: 20px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .info-section button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .info-section button:hover {
+            background-color: #45a049;
+        }
+
+        /* 숫자 입력 필드 스타일 */
+        /* 숫자 입력 필드 스타일 */
+        input[type="number"] {
+            background-color: transparent;
+            /* 배경 투명 */
+            border: 2px solid white;
+            color: black;
+            font-size: 20px;
+            text-align: right;
+            width: 50px;
+            border: none;
+            pointer-events: none;
+            /* 사용자가 직접 입력 불가 */
+        }
+
+
+        /* 숫자 입력 필드 Up/Down 버튼 스타일 */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            /* 스핀 버튼 제거 */
+            appearance: none;
+            margin: 0;
+            background-color: white;
+            /* Up/Down 버튼 색상을 흰색으로 */
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+    </style>
     <script>
+        function changeCount(delta) {
+            const countInput = document.getElementById('count');
+            let currentValue = parseInt(countInput.value) || 1;
+
+            // 숫자 값 증가/감소
+            currentValue += delta;
+
+            // 최소값 1로 제한
+            if (currentValue < 1) currentValue = 1;
+
+            countInput.value = currentValue;
+
+            // 가격 업데이트
+            updatePrice();
+        }
+
+    </script>
+    <script>
+        // 가격 업데이트 함수
         function updatePrice() {
             const countInput = document.getElementById('count');
             const priceDisplay = document.getElementById('price');
@@ -17,14 +149,40 @@
         }
     </script>
 </head>
-<body style="background-color: gray; color: white; text-align: center;">
-    <h2>합성된 사진 확인 및 인화</h2>
-    <!-- 합성된 결과 이미지 -->
-    <img src="{{ url_for('get_nowimgs', filename='result.png') }}" width="400" alt="Result Image">
-    <form action="{{ url_for('print_photo') }}" method="post">
-        <label>인화 장수: <input type="number" name='count' id="count" min="1" value="1" oninput="updatePrice()"></label>
-        <p>가격: <span id="price">1000원</span></p>
-        <button type="submit">인화하기</button>
-    </form>
+
+<body>
+    <div class="container">
+        <!-- 합성된 결과 이미지 -->
+        <div class="image-section">
+            <img src="{{ url_for('get_nowimgs', filename='result.png') }}" alt="Result Image">
+        </div>
+
+        <!-- 정보 섹션 -->
+        <div class="info-section">
+            <form action="{{ url_for('print_photo') }}" method="post">
+            <h2>인화 정보</h2>
+            <label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <!-- Up/Down 버튼이 있는 숫자 입력 필드 -->
+                    <input type="number" name="count" id="count" min="1" value="1" oninput="updatePrice()" readonly>
+                    장
+                    <div style="margin-left: 20px;">
+                        <button type="button" onclick="changeCount(1)"
+                            style="background-color: transparent; border: none; cursor: pointer; font-size: 30px; border-radius: 1px; padding: 0px 2px;">▲</button>
+                            <br>
+                        <button type="button" onclick="changeCount(-1)"
+                            style="background-color: transparent; border: none; cursor: pointer; font-size: 30px;  margin-top: 0px; padding: 0px 2px;">▼</button>
+                    </div>
+                </div>
+
+            </label>
+            <p>가격: <span id="price">1000원</span></p>
+            
+                <button type="submit">인화하기</button>
+            
+            </form>
+        </div>
+    </div>
 </body>
+
 </html>

@@ -2,10 +2,40 @@
 <html>
 <head>
     <title>시작 화면</title>
+    <style>
+        /* 전체 페이지 스타일 */
+        body {
+            margin: 0;
+            height: 100vh;
+            background-image: url("{{ url_for('static', filename='kndl4cut_start.png') }}");
+            background-size: contain; /* 이미지가 화면을 꽉 채우도록 설정 */
+            background-repeat: no-repeat; /* 이미지 반복 방지 */
+            background-position: center; /* 중앙 정렬 */
+            text-align: center;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer; /* 클릭 가능한 커서 표시 */
+        }
+
+        /* 버튼 숨김 처리 */
+        form button {
+            display: none;
+        }
+
+        /* 제목 스타일 */
+        h4 {
+            font-size: 2rem;
+            text-shadow: 2px 2px 4px black; /* 텍스트 그림자 */
+        }
+    </style>
 </head>
-<body style="background-color: gray; text-align: center; color: white;">
-    <h1>KNDL 4CUT</h1>
-    <form action="{{ url_for('frame_select') }}">
+<body onclick="document.getElementById('startForm').submit();">
+    <!-- 제목 -->
+
+    <!-- 숨겨진 폼 -->
+    <form id="startForm" action="{{ url_for('frame_select') }}">
         <button type="submit">시작하기</button>
     </form>
 </body>

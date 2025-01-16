@@ -6,6 +6,8 @@ import win32ui
 import json
 from PIL import Image, ImageDraw, ImageWin, ImageFont
 import time
+import subprocess
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -35,13 +37,13 @@ def get_frame(filename):
 
 # 파일 제공 경로 설정 - 배경
 @app.route('/background/<filename>')
-def get_backgrounds(filename):
+def get_background(filename):
     return send_from_directory(app.config['background'], filename)
 
 
 # 경로 설정
 NOWIMGS_DIR = os.path.join(os.getcwd(), 'nowimgs')
-FRAME_INFO_FILE = os.path.join(os.getcwd(), 'decorations/frame/frameinfo.json')
+FRAME_INFO_FILE = os.path.join(os.getcwd(), 'frameinfo.json')
 FRAME_IMAGE = os.path.join(os.getcwd(), 'decorations/frame')
 
 def resize_and_crop(img, target_width, target_height):
@@ -81,12 +83,57 @@ def resize_and_crop(img, target_width, target_height):
 
     return cropped_img
 
+import hashlib
+import qrcode
+
+def create_hash(folder_name):
+    """
+    SHA256 해시 생성 후 10자리로 자르기
+    """
+    hash_object = hashlib.sha256(folder_name.encode())
+    return hash_object.hexdigest()[:10]  # 해시값의 첫 10자리만 사용
+
+def generate_qr(folder_name, domain="https://kndl4cut.toby2718.com"):
+    """
+    QR 코드 URL 생성 및 출력
+    """
+    # 해시 처리된 폴더 이름 생성
+    hash_value = create_hash(folder_name)
+
+    # QR 코드 링크 생성
+    qr_url = f"{domain}/photo/{hash_value}"
+
+    # QR 코드 생성
+    qr = qrcode.QRCode(
+        version=1,  # QR 코드 크기 (1 ~ 40)
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(qr_url)
+    qr.make(fit=True)
+
+    # QR 코드 이미지 생성 및 저장
+    img = qr.make_image(fill_color="black", back_color="white")
+    img.save(f"nowimgs/resultQR.png")
+
+    return {
+        "folder_name": folder_name,
+        "hash": hash_value,
+        "qr_url": qr_url,
+        "qr_image": f"qr_{hash_value}.png"
+    }
+
 
 @app.route('/generate_result/<framename>')
 def generate_result(framename):
     # 1. frameinfo.json 파일에서 좌표 읽기
     with open(FRAME_INFO_FILE, 'r') as f:
         frame_info = json.load(f)
+
+    # 현재 날짜, 시간, 분을 형식에 맞게 가져옵니다
+    current_time = datetime.now().strftime('%Y%m%d%H%M')
+    generate_qr(current_time )
 
     # 2. 선택된 프레임 이미지와 좌표 확인
     if framename not in frame_info:
@@ -103,6 +150,11 @@ def generate_result(framename):
     photos = [
         os.path.join(NOWIMGS_DIR, f"{i}.jpg") for i in range(4)
     ]
+    
+    
+    photo = Image.open('nowimgs/resultQR.png')
+    photo2 = resize_and_crop(photo, 120, 120)
+    frame_img.paste(photo2, (1060, 1660), photo2.convert("RGBA"))
 
     # 4. 사진을 프레임에 순서대로 합성
     for idx, coords in enumerate(frame_info[framename]):
@@ -118,6 +170,16 @@ def generate_result(framename):
 
     # 5. 결과 이미지 저장
     result_path = os.path.join(NOWIMGS_DIR, 'result.png')
+    frame_img.save(result_path)
+
+    # 폴더 경로 설정
+    folder_path = os.path.join('Z:\\cutbooth\\photos', current_time)
+
+    # 폴더 생성
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+        frame_img.save(os.path.join(folder_path, 'result.png'))
+
     frame_img.save(result_path)
     return redirect(url_for('print_page'))
 
@@ -148,15 +210,15 @@ def frame_select():
     backgrounds = os.listdir(background_folder)
     return render_template('frame_select.html', frames=frames, backgrounds=backgrounds)
 
-@app.route('/select_frame', methods=['POST'])
-def select_frame():
-    global selected_frame
-    selected_frame = request.form['frame']
-    return redirect(url_for('photo_shoot'))
 
 @app.route('/photo_shoot')
 def photo_shoot():
-    return render_template('photo_shoot.html')
+    # 1. frameinfo.json 파일에서 좌표 읽기
+    frame_info={}
+    with open(FRAME_INFO_FILE, 'r') as f:
+        frame_info = json.load(f)
+
+    return render_template('photo_shoot.html', aspect_ratios=frame_info)
 
 
 @app.route('/video_feed')
@@ -176,6 +238,16 @@ def take_photo():
         if success:
             filename = os.path.join(output_folder, f"{photo_index}.jpg")
             cv2.imwrite(filename, frame)  # 이미지 저장
+
+            #얼굴보정 
+
+            command = ["python", "infer.py", "--input", "../" + filename]
+            working_directory = "face-smoothing"
+
+            # 명령 실행
+           # process = subprocess.Popen(command, cwd=working_directory, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+
             return jsonify({"status": "success", "photo_index": photo_index})
     return jsonify({"status": "error", "message": "Failed to capture photo."})
 
@@ -201,8 +273,7 @@ def print_photo():
         return "Error: Result image not found", 404
 
     try:
-        for _ in range(count):
-            print_image_to_printer(RESULT_IMAGE_PATH)  # 프린터로 출력
+        print_image_to_printer(RESULT_IMAGE_PATH, count)  # 프린터로 출력
         return redirect('/')
         
     except Exception as e:
@@ -211,40 +282,58 @@ def print_photo():
 
 
 
-def print_image_to_printer(image_path):
+def print_image_to_printer(image_path, n):
     """
-    Windows 프린터로 이미지를 출력하는 함수
+    Windows 프린터로 이미지를 여백 없이 꽉 차게 출력하는 함수
     """
-    # 프린터 설정 가져오기
-    printer_name = 'Brother MFC-T920DW' # win32print.GetDefaultPrinter()  # 기본 프린터
+    # 프린터 설정
+    printer_name = 'Brother MFC-T920DW'  # 프린터 이름
     hprinter = win32print.OpenPrinter(printer_name)
     printer_info = win32print.GetPrinter(hprinter, 2)
 
     hdc_printer = win32ui.CreateDC()
     hdc_printer.CreatePrinterDC(printer_name)
 
-    # 출력 시작
-    hdc_printer.StartDoc(image_path)
-    hdc_printer.StartPage()
+    # 프린터 출력 영역 크기 가져오기
+    printer_width = hdc_printer.GetDeviceCaps(110)  # HORZRES: 가로 해상도
+    printer_height = hdc_printer.GetDeviceCaps(111)  # VERTRES: 세로 해상도
 
     # 이미지 불러오기
     img = Image.open(image_path)
     img_width, img_height = img.size
 
-    # 프린터 DPI 설정 (출력 해상도)
-    printer_width = hdc_printer.GetDeviceCaps(110)  # HORZRES
-    printer_height = hdc_printer.GetDeviceCaps(111)  # VERTRES
+    # 이미지 비율 조정 (여백 없이 꽉 차게 맞춤)
+    img_ratio = img_width / img_height
+    printer_ratio = printer_width / printer_height
 
-    # 이미지 크기 조정 (프린터 해상도에 맞춤)
-    img_resized = img.resize((printer_width, printer_height), Image.LANCZOS)
+    if img_ratio > printer_ratio:
+        # 이미지가 더 넓은 경우 -> 높이를 기준으로 잘라냄
+        new_width = int(img_height * printer_ratio)
+        offset = (img_width - new_width) // 2
+        crop_box = (offset, 0, offset + new_width, img_height)
+    else:
+        # 이미지가 더 긴 경우 -> 너비를 기준으로 잘라냄
+        new_height = int(img_width / printer_ratio)
+        offset = (img_height - new_height) // 2
+        crop_box = (0, offset, img_width, offset + new_height)
 
-    # Pillow의 ImageWin을 사용하여 프린터에 이미지 출력
-    dib = ImageWin.Dib(img_resized)
-    dib.draw(hdc_printer.GetHandleOutput(), (0, 0, printer_width, printer_height))
+    img_cropped = img.crop(crop_box)
 
-    # 출력 종료
-    hdc_printer.EndPage()
-    hdc_printer.EndDoc()
+    # 이미지 크기를 프린터 해상도에 맞춤
+    img_resized = img_cropped.resize((printer_width, printer_height), Image.LANCZOS)
+
+    for _ in range(n):
+        # 출력 시작
+        hdc_printer.StartDoc("Image Print")
+        hdc_printer.StartPage()
+
+        # Pillow의 ImageWin으로 프린터에 이미지 출력
+        dib = ImageWin.Dib(img_resized)
+        dib.draw(hdc_printer.GetHandleOutput(), (0, 0, printer_width-120, printer_height-160))
+
+        # 출력 종료
+        hdc_printer.EndPage()
+        hdc_printer.EndDoc()
     hdc_printer.DeleteDC()
     win32print.ClosePrinter(hprinter)
 

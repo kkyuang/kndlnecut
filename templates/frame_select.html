@@ -2,17 +2,136 @@
 <html>
 <head>
     <title>프레임 및 배경 선택</title>
+    <style>
+        /* 전체 페이지 스타일 */
+        body {
+            margin: 0;
+            height: 100vh;
+            background-image: url("{{ url_for('static', filename='select_screen.png') }}");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: left top;
+            color: black;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        /* 제목 스타일 */
+        h2 {
+            margin: 20px 0;
+            font-size: 2rem;
+            text-shadow: 1px 1px 3px gray;
+            font-weight: bold;
+        }
+
+        /* 가로 스크롤 박스 스타일 */
+        .scroll-box {
+            display: flex;
+            overflow-x: auto; /* 가로 스크롤 */
+            padding: 10px;
+            gap: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            margin:auto;
+            width: 80%;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        /* 이미지 기본 스타일 */
+        .scroll-box img {
+            border: 4px solid transparent;
+            border-radius: 10px;
+            transition: transform 0.3s, border 0.3s;
+            cursor: pointer;
+        }
+
+        /* 라디오 버튼 숨김 */
+        .scroll-box input[type="radio"] {
+            display: none;
+        }
+
+        /* 선택된 이미지 스타일 */
+        .scroll-box input[type="radio"]:checked + img {
+            transform: scale(1.1); /* 확대 효과 */
+            border-color: #4CAF50; /* 강조 테두리 색상 */
+        }
+
+        /* 버튼 스타일 */
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            color: white;
+            background-color: #4CAF50;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+    <script>
+        // 폼 제출 시 프레임과 배경 선택 여부 체크
+        function validateForm(event) {
+            // 선택된 프레임과 배경이 있는지 확인
+            const frameSelected = document.querySelector('input[name="framename"]:checked');
+            const backgroundSelected = document.querySelector('input[name="backgroundname"]:checked');
+
+            // 하나라도 선택되지 않으면 경고 표시
+            if (!frameSelected || !backgroundSelected) {
+                alert("프레임과 배경을 모두 선택해 주세요.");
+                event.preventDefault(); // 폼 제출을 막음
+            }
+        }
+
+        // 15초 동안 동작이 없으면 '/' 페이지로 리디렉션
+        let inactivityTimer;
+        const redirectTimeout = 15000; // 15초
+
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer); // 기존 타이머 초기화
+            inactivityTimer = setTimeout(() => {
+                window.location.href = '/'; // 리디렉션
+            }, redirectTimeout);
+        }
+
+        // 사용자 활동을 감지하여 타이머 초기화
+        window.onload = function() {
+            // 마우스 이동, 클릭, 키보드 입력 등을 감지하여 타이머를 초기화
+            document.body.addEventListener('mousemove', resetInactivityTimer);
+            document.body.addEventListener('click', resetInactivityTimer);
+            document.body.addEventListener('keydown', resetInactivityTimer);
+
+            // 처음에 타이머 시작
+            resetInactivityTimer();
+        };
+    </script>
 </head>
-<body style="background-color: gray; color: white;">
-    <h2>프레임 선택</h2>
-    <form action="{{ url_for('photo_shoot') }}" method="get">
-        {% for frame in frames %}
-            <label>
-                <input type="radio" name="framename" value="{{ frame }}"> 
-                <img src="{{ url_for('get_frame', filename= frame) }}" width="100">
-            </label>
-        {% endfor %}
-        <button type="submit">선택</button>
+<body>
+    <form action="{{ url_for('photo_shoot') }}" method="get" onsubmit="validateForm(event)">
+        <!-- 프레임 선택 가로 스크롤 박스 -->
+        <div class="scroll-box" style="margin-top:160px">
+            {% for frame in frames %}
+                <label>
+                    <input type="radio" name="framename" value="{{ frame }}">
+                    <img src="{{ url_for('get_frame', filename=frame) }}" width="100" alt="Frame">
+                </label>
+            {% endfor %}
+        </div>
+
+        <!-- 배경 선택 가로 스크롤 박스 -->
+        <div class="scroll-box" style="margin-top:90px">
+            {% for background in backgrounds %}
+                <label>
+                    <input type="radio" name="backgroundname" value="{{ background }}">
+                    <img src="{{ url_for('get_background', filename=background) }}" width="200" alt="Background">
+                </label>
+            {% endfor %}
+        </div>
+
+        <button type="submit">선택 완료</button>
     </form>
 </body>
 </html>
